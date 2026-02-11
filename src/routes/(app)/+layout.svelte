@@ -15,7 +15,7 @@
 	<div class="flex h-12 items-center max-w-2xl w-full justify-between bg-black p-2 px-4">
 		<!-- svelte-ignore a11y_consider_explicit_label -->
 		<div class="flex flex-1 items-center justify-start gap-2">
-			<button class="inline-block sm:hidden">
+			<button class="inline-block button p-1 is-small sm:!hidden">
 				<MenuIcon />
 			</button>
 			<div class="hidden items-center gap-2 sm:flex">
@@ -34,7 +34,7 @@
 				<ShoppingCart />
 				<span>0</span>
 			</a>
-			<a href="/auth" class="button is-link">تسجيل الدخول</a>
+			<a href="/auth" class="button is-small is-link">تسجيل الدخول</a>
 		</div>
 	</div>
 </div>
