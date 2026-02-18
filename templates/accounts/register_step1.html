@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}Register — Step 1 — MyStore{% endblock %}
+
+{% block content %}
+<div class="min-h-[70vh] flex items-center justify-center px-4 py-12">
+  <div class="w-full max-w-sm">
+    <div class="text-center mb-8">
+      <p class="text-4xl mb-2">📱</p>
+      <h1 class="text-2xl font-bold text-gray-900">Create Account</h1>
+      <p class="text-gray-500 text-sm mt-1">Step 1 of 3 — Enter your phone number</p>
+    </div>
+
+    {# Progress #}
+    <div class="flex gap-1 mb-6">
+      <div class="h-1.5 flex-1 rounded-full bg-primary"></div>
+      <div class="h-1.5 flex-1 rounded-full bg-gray-200"></div>
+      <div class="h-1.5 flex-1 rounded-full bg-gray-200"></div>
+    </div>
+
+    <div class="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
+      <form method="post" action="{% url 'accounts:register_step1' %}">
+        {% csrf_token %}
+
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-gray-700 mb-1.5">Phone Number</label>
+          <input type="tel" name="phone"
+                 value="{{ form.phone.value|default:'' }}"
+                 placeholder="+218 91 234 5678"
+                 autofocus
+                 class="w-full border {% if form.phone.errors %}border-red-400{% else %}border-gray-300{% endif %} rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary text-sm" />
+          {% if form.phone.errors %}
+          <p class="text-red-600 text-xs mt-1">{{ form.phone.errors.0 }}</p>
+          {% endif %}
+        </div>
+
+        <div class="mb-6">
+          <label class="block text-sm font-semibold text-gray-700 mb-2">Send verification code via</label>
+          <div class="flex gap-3">
+            <label class="flex-1 flex items-center gap-2 border border-gray-300 rounded-xl px-4 py-3 cursor-pointer has-[:checked]:border-primary has-[:checked]:bg-blue-50 transition">
+              <input type="radio" name="otp_channel" value="whatsapp" checked class="accent-primary" />
+              <span class="text-sm font-medium">💬 WhatsApp</span>
+            </label>
+            <label class="flex-1 flex items-center gap-2 border border-gray-300 rounded-xl px-4 py-3 cursor-pointer has-[:checked]:border-primary has-[:checked]:bg-blue-50 transition">
+              <input type="radio" name="otp_channel" value="sms" class="accent-primary" />
+              <span class="text-sm font-medium">📲 SMS</span>
+            </label>
+          </div>
+        </div>
+
+        <button type="submit"
+                class="w-full bg-primary hover:bg-blue-700 text-white font-bold py-3 rounded-xl transition-colors">
+          Send Code →
+        </button>
+      </form>
+    </div>
+
+    <p class="text-center text-sm text-gray-500 mt-6">
+      Already have an account?
+      <a href="{% url 'accounts:login' %}" class="text-primary font-semibold hover:underline">Sign In</a>
+    </p>
+  </div>
+</div>
+{% endblock %}

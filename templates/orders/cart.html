@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block title %}Your Cart — MyStore{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+  <h1 class="text-2xl font-bold text-gray-900 mb-6">Shopping Cart</h1>
+
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+    {# ── Cart Items ───────────────────────────────────────────── #}
+    <div class="lg:col-span-2">
+      <div class="bg-white rounded-xl border border-gray-200 p-6" id="cart-items-container">
+        {% include "orders/_cart_items.html" %}
+      </div>
+    </div>
+
+    {# ── Order Summary ────────────────────────────────────────── #}
+    <div class="lg:col-span-1">
+      <div class="bg-white rounded-xl border border-gray-200 p-6 sticky top-24">
+        <h2 class="font-bold text-gray-800 text-lg mb-4">Order Summary</h2>
+
+        <div class="space-y-2 mb-4">
+          <div class="flex justify-between text-sm text-gray-600">
+            <span>Items ({{ cart.total_items }})</span>
+            <span>{{ cart.total_price|floatformat:2 }} LYD</span>
+          </div>
+          <div class="flex justify-between text-sm text-gray-500">
+            <span>Delivery</span>
+            <span class="text-green-600 font-medium">Arranged by owner</span>
+          </div>
+        </div>
+
+        <div class="border-t pt-3 mb-5">
+          <div class="flex justify-between font-bold text-gray-900">
+            <span>Total</span>
+            <span>{{ cart.total_price|floatformat:2 }} LYD</span>
+          </div>
+        </div>
+
+        {# Active orders warning #}
+        {% if at_limit %}
+        <div class="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4">
+          <p class="text-sm text-amber-800 font-semibold">⚠️ Order limit reached</p>
+          <p class="text-xs text-amber-700 mt-1">
+            You have {{ active_order_count }} active orders (max {{ max_orders }}).
+            Wait for orders to complete before requesting a new one.
+          </p>
+          <a href="{% url 'orders:my_orders' %}" class="text-xs text-amber-800 underline mt-1 inline-block">
+            View my orders →
+          </a>
+        </div>
+        {% endif %}
+
+        {% if cart.is_empty %}
+          <button disabled class="w-full bg-gray-300 text-gray-500 font-bold py-3 rounded-xl cursor-not-allowed">
+            Cart is Empty
+          </button>
+        {% elif at_limit %}
+          <button disabled class="w-full bg-gray-300 text-gray-500 font-bold py-3 rounded-xl cursor-not-allowed">
+            Order Limit Reached
+          </button>
+        {% else %}
+          <a href="{% url 'orders:request_order' %}"
+             class="block w-full text-center bg-primary hover:bg-blue-700 text-white font-bold py-3 rounded-xl transition-colors">
+            Request Order 📦
+          </a>
+        {% endif %}
+
+        <a href="{% url 'catalog:homepage' %}"
+           class="block text-center text-sm text-gray-500 hover:text-primary mt-3">
+          ← Continue Shopping
+        </a>
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}

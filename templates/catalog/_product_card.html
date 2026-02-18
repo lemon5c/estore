@@ -1,0 +1,55 @@
+{% load static %}
+{% with img=product.primary_image discount=product.active_discount %}
+<a href="{{ product.get_absolute_url }}"
+   class="bg-white rounded-xl border border-gray-200 hover:shadow-md hover:border-primary/40 transition-all group flex flex-col overflow-hidden">
+
+  {# Product Image #}
+  <div class="relative aspect-square overflow-hidden bg-gray-100">
+    {% if img %}
+      <img src="{{ img.image.url }}" alt="{{ img.alt_text|default:product.name }}"
+           class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+    {% else %}
+      <div class="w-full h-full flex items-center justify-center text-gray-300 text-5xl">📦</div>
+    {% endif %}
+
+    {# Discount badge #}
+    {% if discount %}
+    <span class="absolute top-2 left-2 bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+      {% if discount.discount_type == 'percent' %}-{{ discount.value|floatformat:0 }}%
+      {% else %}-{{ discount.value|floatformat:0 }} LYD{% endif %}
+    </span>
+    {% endif %}
+
+    {# Out of stock overlay #}
+    {% if product.total_stock == 0 %}
+    <div class="absolute inset-0 bg-black/40 flex items-center justify-center">
+      <span class="bg-white/90 text-gray-700 text-xs font-bold px-3 py-1 rounded-full">Out of Stock</span>
+    </div>
+    {% endif %}
+  </div>
+
+  {# Product Info #}
+  <div class="p-3 flex flex-col flex-1">
+    <p class="text-xs text-gray-400 mb-0.5">{{ product.category.name }}</p>
+    <h3 class="text-sm font-semibold text-gray-800 line-clamp-2 flex-1 group-hover:text-primary">
+      {{ product.name }}
+    </h3>
+
+    {# Price #}
+    <div class="mt-2 flex items-center gap-2">
+      {% if discount %}
+        <span class="text-sm font-bold text-red-600">
+          {{ product.discounted_price|floatformat:0 }} LYD
+        </span>
+        <span class="text-xs text-gray-400 line-through">
+          {{ product.base_price|floatformat:0 }} LYD
+        </span>
+      {% else %}
+        <span class="text-sm font-bold text-gray-800">
+          {{ product.base_price|floatformat:0 }} LYD
+        </span>
+      {% endif %}
+    </div>
+  </div>
+</a>
+{% endwith %}

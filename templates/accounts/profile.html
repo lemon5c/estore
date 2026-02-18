@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}My Profile — MyStore{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+  <h1 class="text-2xl font-bold text-gray-900 mb-6">My Profile</h1>
+
+  <div class="grid grid-cols-1 gap-6">
+
+    {# Account Info Card #}
+    <div class="bg-white rounded-xl border border-gray-200 p-6">
+      <div class="flex items-center gap-4 mb-6">
+        <div class="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center text-2xl font-bold text-primary">
+          {{ user.get_short_name|first|upper }}
+        </div>
+        <div>
+          <p class="font-bold text-gray-900 text-lg">{{ user.get_full_name }}</p>
+          <p class="text-gray-500 text-sm">📱 {{ user.phone }}</p>
+          {% if user.city %}
+          <p class="text-gray-400 text-xs">📍 {{ user.city }}</p>
+          {% endif %}
+        </div>
+      </div>
+
+      {# Profile edit form (the partial contains its own <form> tag) #}
+      {% include "accounts/_profile_form.html" %}
+    </div>
+
+    {# Quick links #}
+    <div class="bg-white rounded-xl border border-gray-200 p-6">
+      <h2 class="font-semibold text-gray-800 mb-4">Quick Links</h2>
+      <div class="grid grid-cols-2 gap-3">
+        <a href="{% url 'orders:my_orders' %}"
+           class="flex items-center gap-3 p-3 rounded-lg border border-gray-200 hover:border-primary hover:bg-blue-50 transition">
+          <span class="text-2xl">📋</span>
+          <div>
+            <p class="font-medium text-sm text-gray-800">My Orders</p>
+            <p class="text-xs text-gray-400">Track your orders</p>
+          </div>
+        </a>
+        <a href="{% url 'orders:cart' %}"
+           class="flex items-center gap-3 p-3 rounded-lg border border-gray-200 hover:border-primary hover:bg-blue-50 transition">
+          <span class="text-2xl">🛒</span>
+          <div>
+            <p class="font-medium text-sm text-gray-800">My Cart</p>
+            <p class="text-xs text-gray-400">View cart items</p>
+          </div>
+        </a>
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}

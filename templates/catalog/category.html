@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}{{ category.name }} — MyStore{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+  <nav class="text-sm text-gray-500 mb-4 flex items-center gap-1">
+    <a href="{% url 'catalog:homepage' %}" class="hover:text-primary">Home</a>
+    <span>›</span>
+    <span class="text-gray-800 font-medium">{{ category.name }}</span>
+  </nav>
+
+  <h1 class="text-2xl font-bold text-gray-900 mb-2">{{ category.name }}</h1>
+  {% if category.description %}
+  <p class="text-gray-500 text-sm mb-6">{{ category.description }}</p>
+  {% endif %}
+
+  {% if subcategories %}
+  <div class="flex gap-3 mb-6 flex-wrap">
+    {% for sub in subcategories %}
+    <a href="{{ sub.get_absolute_url }}"
+       class="bg-white border border-gray-200 rounded-full px-4 py-1.5 text-sm font-medium text-gray-700 hover:border-primary hover:text-primary transition">
+      {{ sub.name }}
+    </a>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {% if products %}
+  <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+    {% for product in products %}
+      {% include "catalog/_product_card.html" %}
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="text-center py-24">
+    <p class="text-5xl mb-4">📦</p>
+    <p class="text-gray-500">No products in this category yet.</p>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

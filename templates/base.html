@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}Store{% endblock %}</title>
+
+  <!-- Tailwind CSS via CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: { DEFAULT: '#2563eb', dark: '#1d4ed8', light: '#3b82f6' },
+            accent:  { DEFAULT: '#f59e0b', dark: '#d97706' },
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- HTMX -->
+  <script src="https://unpkg.com/htmx.org@2.0.4" defer></script>
+  <!-- Alpine.js -->
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+  <style>
+    [x-cloak] { display: none !important; }
+    .input-field {
+      @apply w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition;
+    }
+    .btn-primary {
+      @apply bg-primary hover:bg-primary-dark text-white font-semibold px-6 py-2.5 rounded-lg transition-colors disabled:opacity-50;
+    }
+    .btn-outline {
+      @apply border border-primary text-primary hover:bg-primary hover:text-white font-semibold px-6 py-2.5 rounded-lg transition-colors;
+    }
+    .btn-danger {
+      @apply bg-red-600 hover:bg-red-700 text-white font-semibold px-4 py-2 rounded-lg transition-colors;
+    }
+  </style>
+
+  {% block extra_head %}{% endblock %}
+</head>
+<body class="bg-gray-50 text-gray-900 min-h-screen flex flex-col" hx-boost="false">
+
+  <!-- ── Navbar ────────────────────────────────────────────────── -->
+  <header class="bg-white shadow-sm sticky top-0 z-50">
+    <nav class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
+
+      <!-- Logo -->
+      <a href="{% url 'catalog:homepage' %}" class="text-2xl font-bold text-primary whitespace-nowrap">
+        🛒 MyStore
+      </a>
+
+      <!-- Search (placeholder) -->
+      <form method="get" action="/" class="flex-1 max-w-xl hidden sm:flex">
+        <input type="text" name="q" placeholder="Search products..."
+               class="w-full border border-gray-300 rounded-l-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-primary" />
+        <button type="submit" class="bg-primary text-white px-4 rounded-r-lg hover:bg-primary-dark transition">
+          🔍
+        </button>
+      </form>
+
+      <!-- Right side actions -->
+      <div class="flex items-center gap-3 shrink-0">
+        {% if user.is_authenticated %}
+          <!-- Cart -->
+          <a href="{% url 'orders:cart' %}" class="relative" title="Cart">
+            <span class="text-2xl">🛍️</span>
+            <span id="cart-count"
+                  class="absolute -top-1 -right-1 bg-accent text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+              {% if user.cart.items.count %}{{ user.cart.items.count }}{% else %}0{% endif %}
+            </span>
+          </a>
+
+          <!-- User menu -->
+          <div x-data="{ open: false }" class="relative">
+            <button @click="open = !open" class="flex items-center gap-1 text-gray-700 hover:text-primary font-medium">
+              <span class="text-sm">{{ user.get_short_name }}</span>
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            <div x-show="open" @click.outside="open = false" x-cloak
+                 class="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg py-1">
+              <a href="{% url 'orders:my_orders' %}" class="block px-4 py-2 text-sm hover:bg-gray-50">My Orders</a>
+              <a href="{% url 'accounts:profile' %}" class="block px-4 py-2 text-sm hover:bg-gray-50">Profile</a>
+              {% if user.is_staff %}
+                <a href="/admin/" class="block px-4 py-2 text-sm hover:bg-gray-50 text-blue-600">Admin Panel</a>
+              {% endif %}
+              <hr class="my-1" />
+              <form method="post" action="{% url 'accounts:logout' %}">
+                {% csrf_token %}
+                <button type="submit" class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-50">
+                  Sign Out
+                </button>
+              </form>
+            </div>
+          </div>
+
+        {% else %}
+          <a href="{% url 'accounts:login' %}" class="text-sm font-medium text-gray-700 hover:text-primary">Sign In</a>
+          <a href="{% url 'accounts:register_step1' %}" class="btn-primary text-sm py-2 px-4">Register</a>
+        {% endif %}
+      </div>
+    </nav>
+
+    <!-- Category nav bar -->
+    <div class="bg-primary">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center gap-6 overflow-x-auto py-2">
+        <a href="{% url 'catalog:homepage' %}" class="text-white/90 hover:text-white text-sm font-medium whitespace-nowrap">
+          All Products
+        </a>
+        {% for cat in nav_categories %}
+          <a href="{{ cat.get_absolute_url }}"
+             class="text-white/90 hover:text-white text-sm font-medium whitespace-nowrap">
+            {{ cat.name }}
+          </a>
+        {% endfor %}
+      </div>
+    </div>
+  </header>
+
+  <!-- ── Flash Messages ────────────────────────────────────────── -->
+  {% if messages %}
+  <div class="max-w-7xl mx-auto px-4 mt-4 space-y-2" id="messages">
+    {% for message in messages %}
+    <div class="rounded-lg px-4 py-3 flex items-center justify-between
+      {% if message.tags == 'error' %}bg-red-50 border border-red-200 text-red-800
+      {% elif message.tags == 'success' %}bg-green-50 border border-green-200 text-green-800
+      {% elif message.tags == 'warning' %}bg-yellow-50 border border-yellow-200 text-yellow-800
+      {% else %}bg-blue-50 border border-blue-200 text-blue-800{% endif %}"
+      x-data x-init="setTimeout(() => $el.remove(), 5000)">
+      <span>{{ message }}</span>
+      <button @click="$el.remove()" class="ml-4 text-lg leading-none opacity-60 hover:opacity-100">×</button>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <!-- ── Main Content ────────────────────────────────────────────── -->
+  <main class="flex-1">
+    {% block content %}{% endblock %}
+  </main>
+
+  <!-- ── Footer ────────────────────────────────────────────────── -->
+  <footer class="bg-gray-800 text-gray-300 mt-16">
+    <div class="max-w-7xl mx-auto px-4 py-10 grid grid-cols-1 sm:grid-cols-3 gap-8">
+      <div>
+        <h3 class="text-white font-bold text-lg mb-3">🛒 MyStore</h3>
+        <p class="text-sm text-gray-400">
+          Your trusted online store. Order easily, pay safely, receive quickly.
+        </p>
+      </div>
+      <div>
+        <h4 class="text-white font-semibold mb-3">Quick Links</h4>
+        <ul class="space-y-2 text-sm">
+          <li><a href="{% url 'catalog:homepage' %}" class="hover:text-white">Home</a></li>
+          {% if user.is_authenticated %}
+            <li><a href="{% url 'orders:my_orders' %}" class="hover:text-white">My Orders</a></li>
+            <li><a href="{% url 'accounts:profile' %}" class="hover:text-white">Profile</a></li>
+          {% else %}
+            <li><a href="{% url 'accounts:register_step1' %}" class="hover:text-white">Create Account</a></li>
+          {% endif %}
+        </ul>
+      </div>
+      <div>
+        <h4 class="text-white font-semibold mb-3">Contact Us</h4>
+        <p class="text-sm text-gray-400">
+          Orders are processed via WhatsApp after you place a request.<br/>
+          The store owner will contact you directly.
+        </p>
+      </div>
+    </div>
+    <div class="border-t border-gray-700 py-4 text-center text-sm text-gray-500">
+      © {% now "Y" %} MyStore. All rights reserved.
+    </div>
+  </footer>
+
+</body>
+</html>

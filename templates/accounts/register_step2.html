@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}Register — Verify Code — MyStore{% endblock %}
+
+{% block content %}
+<div class="min-h-[70vh] flex items-center justify-center px-4 py-12">
+  <div class="w-full max-w-sm">
+    <div class="text-center mb-8">
+      <p class="text-4xl mb-2">🔐</p>
+      <h1 class="text-2xl font-bold text-gray-900">Verify Your Number</h1>
+      <p class="text-gray-500 text-sm mt-1">Step 2 of 3 — Enter the 6-digit code sent to</p>
+      <p class="font-semibold text-gray-800 text-sm">{{ phone }}</p>
+    </div>
+
+    {# Progress #}
+    <div class="flex gap-1 mb-6">
+      <div class="h-1.5 flex-1 rounded-full bg-primary"></div>
+      <div class="h-1.5 flex-1 rounded-full bg-primary"></div>
+      <div class="h-1.5 flex-1 rounded-full bg-gray-200"></div>
+    </div>
+
+    <div class="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
+      <form method="post" action="{% url 'accounts:register_step2' %}">
+        {% csrf_token %}
+
+        <div class="mb-6">
+          <label class="block text-sm font-medium text-gray-700 mb-1.5 text-center">Verification Code</label>
+          <input type="text" name="code"
+                 maxlength="6" minlength="6"
+                 inputmode="numeric" autocomplete="one-time-code"
+                 autofocus
+                 placeholder="000000"
+                 class="w-full border {% if form.code.errors %}border-red-400{% else %}border-gray-300{% endif %} rounded-xl px-4 py-4 focus:outline-none focus:ring-2 focus:ring-primary text-2xl font-bold text-center tracking-[0.5em] letter-spacing" />
+          {% if form.code.errors %}
+          <p class="text-red-600 text-xs mt-1 text-center">{{ form.code.errors.0 }}</p>
+          {% endif %}
+        </div>
+
+        <button type="submit"
+                class="w-full bg-primary hover:bg-blue-700 text-white font-bold py-3 rounded-xl transition-colors">
+          Verify Code →
+        </button>
+      </form>
+
+      <div class="text-center mt-4">
+        <a href="{% url 'accounts:register_step1' %}"
+           class="text-sm text-gray-500 hover:text-primary">
+          ← Wrong number? Go back
+        </a>
+      </div>
+    </div>
+
+    <p class="text-center text-xs text-gray-400 mt-4">
+      Code expires in 10 minutes. Check your WhatsApp or SMS.
+    </p>
+  </div>
+</div>
+{% endblock %}

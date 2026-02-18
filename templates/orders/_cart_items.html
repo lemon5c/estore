@@ -1,0 +1,74 @@
+{% if cart.is_empty %}
+<div class="text-center py-16 text-gray-400">
+  <p class="text-5xl mb-3">🛒</p>
+  <p class="font-medium text-gray-600">Your cart is empty</p>
+  <a href="{% url 'catalog:homepage' %}" class="text-primary text-sm hover:underline mt-2 inline-block">
+    Continue shopping →
+  </a>
+</div>
+{% else %}
+  {% for item in cart.items.all %}
+  <div class="flex gap-4 items-start py-4 border-b border-gray-100 last:border-0">
+    {# Product image #}
+    {% with img=item.variant.product.primary_image %}
+    <div class="w-20 h-20 rounded-lg overflow-hidden bg-gray-100 shrink-0">
+      {% if img %}
+        <img src="{{ img.image.url }}" alt="{{ item.variant.product.name }}" class="w-full h-full object-cover" />
+      {% else %}
+        <div class="w-full h-full flex items-center justify-center text-gray-300 text-2xl">📦</div>
+      {% endif %}
+    </div>
+    {% endwith %}
+
+    {# Item details #}
+    <div class="flex-1 min-w-0">
+      <a href="{{ item.variant.product.get_absolute_url }}"
+         class="font-semibold text-gray-800 hover:text-primary text-sm line-clamp-2">
+        {{ item.variant.product.name }}
+      </a>
+      {% if item.variant.options_display %}
+      <p class="text-xs text-gray-500 mt-0.5">{{ item.variant.options_display }}</p>
+      {% endif %}
+      <p class="text-sm font-bold text-gray-900 mt-1">{{ item.variant.effective_price|floatformat:2 }} LYD</p>
+
+      {# Quantity controls #}
+      <div class="flex items-center gap-2 mt-2">
+        <form method="post" action="{% url 'orders:update_cart_item' item_pk=item.pk %}"
+              hx-post="{% url 'orders:update_cart_item' item_pk=item.pk %}"
+              hx-target="#cart-items-container"
+              hx-swap="innerHTML">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="decrease" />
+          <button type="submit" class="w-7 h-7 rounded border border-gray-300 flex items-center justify-center text-gray-600 hover:bg-gray-100 font-bold">−</button>
+        </form>
+
+        <span class="w-8 text-center text-sm font-semibold">{{ item.quantity }}</span>
+
+        <form method="post" action="{% url 'orders:update_cart_item' item_pk=item.pk %}"
+              hx-post="{% url 'orders:update_cart_item' item_pk=item.pk %}"
+              hx-target="#cart-items-container"
+              hx-swap="innerHTML">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="increase" />
+          <button type="submit" class="w-7 h-7 rounded border border-gray-300 flex items-center justify-center text-gray-600 hover:bg-gray-100 font-bold">+</button>
+        </form>
+
+        <form method="post" action="{% url 'orders:update_cart_item' item_pk=item.pk %}"
+              hx-post="{% url 'orders:update_cart_item' item_pk=item.pk %}"
+              hx-target="#cart-items-container"
+              hx-swap="innerHTML"
+              class="ml-2">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="remove" />
+          <button type="submit" class="text-red-500 hover:text-red-700 text-xs">Remove</button>
+        </form>
+      </div>
+    </div>
+
+    {# Subtotal #}
+    <div class="text-right shrink-0">
+      <p class="font-bold text-gray-900 text-sm">{{ item.subtotal|floatformat:2 }} LYD</p>
+    </div>
+  </div>
+  {% endfor %}
+{% endif %}

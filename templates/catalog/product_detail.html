@@ -1,0 +1,391 @@
+{% extends "base.html" %}
+{% block title %}{{ product.name }} — MyStore{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+  {# Breadcrumb #}
+  <nav class="text-sm text-gray-500 mb-4 flex items-center gap-1">
+    <a href="{% url 'catalog:homepage' %}" class="hover:text-primary">Home</a>
+    <span>›</span>
+    <a href="{{ product.category.get_absolute_url }}" class="hover:text-primary">{{ product.category.name }}</a>
+    <span>›</span>
+    <span class="text-gray-800 font-medium">{{ product.name }}</span>
+  </nav>
+
+  {# ── Product Section ──────────────────────────────────────── #}
+  <div x-data="productVariantSelector()" class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
+
+    {# ── Images Column ──────────────────────────────────── #}
+    <div class="space-y-3">
+      {# Main image #}
+      <div class="aspect-square rounded-2xl overflow-hidden bg-gray-100 border border-gray-200">
+        <img :src="activeImage" alt="{{ product.name }}"
+             class="w-full h-full object-cover" />
+      </div>
+
+      {# Thumbnail strip #}
+      {% if product.images.count > 1 %}
+      <div class="flex gap-2 overflow-x-auto">
+        {% for img in product.images.all %}
+        <button @click="activeImage = '{{ img.image.url }}'"
+                :class="activeImage === '{{ img.image.url }}' ? 'ring-2 ring-primary' : 'ring-1 ring-gray-200'"
+                class="w-16 h-16 rounded-lg overflow-hidden shrink-0 bg-gray-100">
+          <img src="{{ img.image.url }}" alt="{{ img.alt_text }}" class="w-full h-full object-cover" />
+        </button>
+        {% endfor %}
+      </div>
+      {% endif %}
+    </div>
+
+    {# ── Info Column ──────────────────────────────────────── #}
+    <div class="flex flex-col gap-4">
+      <div>
+        <a href="{{ product.category.get_absolute_url }}"
+           class="text-sm text-primary hover:underline">{{ product.category.name }}</a>
+        <h1 class="text-2xl font-bold text-gray-900 mt-1">{{ product.name }}</h1>
+
+        {# Rating summary #}
+        {% if review_count %}
+        <div class="flex items-center gap-2 mt-2">
+          <div class="flex text-accent">
+            {% for i in "12345" %}
+              {% if forloop.counter <= avg_rating %}★{% else %}☆{% endif %}
+            {% endfor %}
+          </div>
+          <span class="text-sm text-gray-500">{{ avg_rating }} ({{ review_count }} review{{ review_count|pluralize }})</span>
+        </div>
+        {% endif %}
+      </div>
+
+      {# Price display (updates when variant selected) #}
+      <div id="price-display">
+        {% with discount=product.active_discount %}
+        {% if discount %}
+          <div class="flex items-baseline gap-3">
+            <span class="text-3xl font-bold text-red-600">
+              {{ product.discounted_price|floatformat:2 }} LYD
+            </span>
+            <span class="text-lg text-gray-400 line-through">
+              {{ product.base_price|floatformat:2 }} LYD
+            </span>
+            <span class="bg-red-100 text-red-700 text-sm font-bold px-2 py-0.5 rounded-full">
+              {% if discount.discount_type == 'percent' %}-{{ discount.value|floatformat:0 }}%
+              {% else %}-{{ discount.value|floatformat:0 }} LYD{% endif %}
+            </span>
+          </div>
+        {% else %}
+          <span class="text-3xl font-bold text-gray-900">
+            {{ product.base_price|floatformat:2 }} LYD
+          </span>
+        {% endif %}
+        {% endwith %}
+      </div>
+
+      {# Description #}
+      {% if product.description %}
+      <p class="text-gray-600 text-sm leading-relaxed">{{ product.description }}</p>
+      {% endif %}
+
+      {# ── Variant Selector ──────────────────────────────── #}
+      {% if variant_types %}
+      <div class="space-y-4">
+        {% for vtype in variant_types %}
+        <div>
+          <p class="text-sm font-semibold text-gray-700 mb-2">
+            {{ vtype.name }}:
+            <span class="font-normal text-primary" x-text="selectedOptions['{{ vtype.pk }}'] || 'Select'"></span>
+          </p>
+          <div class="flex flex-wrap gap-2">
+            {% for option in vtype.options.all %}
+            <button
+              @click="selectOption('{{ vtype.pk }}', '{{ option.value }}', '{{ option.pk }}')"
+              :class="{
+                'bg-primary text-white border-primary': selectedOptions['{{ vtype.pk }}'] === '{{ option.value }}',
+                'bg-white text-gray-700 border-gray-300 hover:border-primary': selectedOptions['{{ vtype.pk }}'] !== '{{ option.value }}'
+              }"
+              class="border rounded-lg px-4 py-2 text-sm font-medium transition-all">
+              {{ option.value }}
+            </button>
+            {% endfor %}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      {# ── Stock Status (HTMX) ────────────────────────────── #}
+      <div id="variant-stock-info"
+           hx-get="{% url 'catalog:variant_stock' variant_pk=0 %}"
+           hx-trigger="none"
+           class="text-sm">
+        <span class="text-gray-500">Select options to check availability</span>
+      </div>
+
+      {# ── Quantity + Add to Cart ─────────────────────────── #}
+      <div class="flex items-center gap-3">
+        <div class="flex items-center border border-gray-300 rounded-lg overflow-hidden">
+          <button @click="if(qty > 1) qty--"
+                  class="px-3 py-2 bg-gray-50 hover:bg-gray-100 font-bold text-gray-600 transition">−</button>
+          <input type="number" x-model.number="qty" min="1" max="99"
+                 class="w-14 text-center py-2 border-none focus:outline-none font-semibold" />
+          <button @click="qty++"
+                  class="px-3 py-2 bg-gray-50 hover:bg-gray-100 font-bold text-gray-600 transition">+</button>
+        </div>
+
+        {% if user.is_authenticated %}
+          <form method="post"
+                :action="'/orders/cart/add/' + (selectedVariantId || '0') + '/'"
+                @submit.prevent="submitAddToCart($event)"
+                class="flex-1">
+            {% csrf_token %}
+            <input type="hidden" name="quantity" :value="qty" />
+            <button type="submit"
+                    :disabled="!selectedVariantId || !isInStock"
+                    class="w-full bg-primary hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-bold py-3 rounded-xl transition-colors">
+              <span x-text="!selectedVariantId ? 'Select Options' : (!isInStock ? 'Out of Stock' : 'Add to Cart 🛒')"></span>
+            </button>
+          </form>
+        {% else %}
+          <a href="{% url 'accounts:login' %}?next={{ request.path }}"
+             class="flex-1 text-center bg-primary text-white font-bold py-3 rounded-xl hover:bg-blue-700 transition">
+            Sign in to Order
+          </a>
+        {% endif %}
+      </div>
+
+      {# Order limit warning #}
+      {% if user.is_authenticated and active_order_count >= max_active_orders %}
+      <div class="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-sm text-amber-800">
+        ⚠️ You have <strong>{{ active_order_count }}</strong> active orders.
+        You can still add items to cart, but you cannot request a new order until some are completed.
+        <a href="{% url 'orders:my_orders' %}" class="underline font-medium">View my orders →</a>
+      </div>
+      {% endif %}
+
+    </div>{# end info column #}
+  </div>
+
+  {# ── Reviews Section ──────────────────────────────────────── #}
+  <section class="border-t border-gray-200 pt-10">
+    <h2 class="text-xl font-bold text-gray-800 mb-6">
+      Customer Reviews
+      {% if review_count %}
+        <span class="text-base font-normal text-gray-500 ml-2">({{ review_count }})</span>
+      {% endif %}
+    </h2>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+
+      {# ── Left: Rating summary + Write review ─────────────── #}
+      <div class="lg:col-span-1">
+        {% if avg_rating %}
+        <div class="bg-white border border-gray-200 rounded-xl p-6 text-center mb-6">
+          <div class="text-5xl font-bold text-gray-900 mb-1">{{ avg_rating }}</div>
+          <div class="text-accent text-2xl mb-1">
+            {% for i in "12345" %}
+              {% if forloop.counter <= avg_rating %}★{% else %}☆{% endif %}
+            {% endfor %}
+          </div>
+          <p class="text-sm text-gray-500">Based on {{ review_count }} review{{ review_count|pluralize }}</p>
+        </div>
+        {% endif %}
+
+        {# Write / edit review form #}
+        {% if user.is_authenticated %}
+        <div class="bg-white border border-gray-200 rounded-xl p-5" x-data="{ rating: {{ user_review.rating|default:0 }} }">
+          <h3 class="font-semibold text-gray-800 mb-4">
+            {% if user_review %}Edit Your Review{% else %}Write a Review{% endif %}
+          </h3>
+          <form method="post" action="{% url 'reviews:submit' product_slug=product.slug %}">
+            {% csrf_token %}
+
+            {# Star rating picker #}
+            <div class="mb-4">
+              <label class="block text-sm font-medium text-gray-700 mb-2">Rating</label>
+              <div class="flex gap-1">
+                {% for i in "12345" %}
+                <button type="button"
+                        @click="rating = {{ forloop.counter }}"
+                        class="text-2xl transition-colors"
+                        :class="rating >= {{ forloop.counter }} ? 'text-accent' : 'text-gray-300'">★</button>
+                {% endfor %}
+              </div>
+              <input type="hidden" name="rating" :value="rating" />
+            </div>
+
+            <div class="mb-3">
+              <label class="block text-sm font-medium text-gray-700 mb-1">Title (optional)</label>
+              <input type="text" name="title"
+                     value="{{ user_review.title|default:'' }}"
+                     placeholder="Brief summary"
+                     class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+            </div>
+
+            <div class="mb-3">
+              <label class="block text-sm font-medium text-gray-700 mb-1">Review</label>
+              <textarea name="body" rows="4" required
+                        placeholder="Share your experience..."
+                        class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary resize-none">{{ user_review.body|default:'' }}</textarea>
+            </div>
+
+            <div class="mb-4">
+              <label class="block text-sm font-medium text-gray-700 mb-1">
+                Order ID <span class="text-gray-400 font-normal">(optional, for verified badge)</span>
+              </label>
+              <input type="number" name="claimed_order_id"
+                     value="{{ user_review.claimed_order_id|default:'' }}"
+                     placeholder="e.g. 42"
+                     class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+            </div>
+
+            <button type="submit"
+                    :disabled="rating === 0"
+                    class="w-full bg-primary hover:bg-blue-700 disabled:bg-gray-300 text-white font-semibold py-2.5 rounded-lg transition-colors text-sm">
+              {% if user_review %}Update Review{% else %}Submit Review{% endif %}
+            </button>
+          </form>
+
+          {% if user_review %}
+          <form method="post" action="{% url 'reviews:delete' product_slug=product.slug %}" class="mt-2">
+            {% csrf_token %}
+            <button type="submit" class="w-full text-sm text-red-600 hover:underline">Delete my review</button>
+          </form>
+          {% endif %}
+        </div>
+        {% else %}
+        <div class="bg-blue-50 border border-blue-200 rounded-xl p-5 text-center">
+          <p class="text-sm text-blue-700 mb-3">Sign in to write a review</p>
+          <a href="{% url 'accounts:login' %}?next={{ request.path }}"
+             class="text-sm font-semibold text-primary hover:underline">Sign In →</a>
+        </div>
+        {% endif %}
+      </div>
+
+      {# ── Right: Reviews list ─────────────────────────────── #}
+      <div class="lg:col-span-2 space-y-4">
+        {% if reviews %}
+          {% for review in reviews %}
+          <div class="bg-white border border-gray-200 rounded-xl p-5">
+            <div class="flex items-start justify-between mb-2">
+              <div>
+                <div class="flex items-center gap-2">
+                  <span class="font-semibold text-gray-800 text-sm">{{ review.user.get_full_name }}</span>
+                  {% if review.is_verified_purchase %}
+                  <span class="bg-green-100 text-green-700 text-xs font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
+                    ✓ Verified Purchase
+                  </span>
+                  {% endif %}
+                </div>
+                <div class="text-accent text-sm mt-0.5">
+                  {% for i in "12345" %}
+                    {% if forloop.counter <= review.rating %}★{% else %}☆{% endif %}
+                  {% endfor %}
+                </div>
+              </div>
+              <span class="text-xs text-gray-400">{{ review.created_at|date:"M d, Y" }}</span>
+            </div>
+            {% if review.title %}
+            <p class="font-semibold text-sm text-gray-800 mb-1">{{ review.title }}</p>
+            {% endif %}
+            <p class="text-sm text-gray-600 leading-relaxed">{{ review.body }}</p>
+          </div>
+          {% endfor %}
+        {% else %}
+          <div class="text-center py-16 text-gray-400">
+            <p class="text-4xl mb-3">📝</p>
+            <p class="font-medium">No reviews yet.</p>
+            <p class="text-sm">Be the first to share your experience!</p>
+          </div>
+        {% endif %}
+      </div>
+
+    </div>
+  </section>
+
+</div>
+
+{# ── Alpine.js Product Variant Logic ─────────────────────────── #}
+<script>
+function productVariantSelector() {
+  // Build variant data from server
+  const variants = [
+    {% for v in variants %}
+    {
+      id: {{ v.pk }},
+      options: [{% for opt in v.options.all %}{{ opt.pk }},{% endfor %}],
+      stock: {{ v.stock_qty }},
+      price: "{{ v.effective_price|floatformat:2 }}",
+    },
+    {% endfor %}
+  ];
+
+  const optionToType = {
+    {% for vtype in variant_types %}
+      {% for opt in vtype.options.all %}
+      {{ opt.pk }}: "{{ vtype.pk }}",
+      {% endfor %}
+    {% endfor %}
+  };
+
+  return {
+    selectedOptions: {},   // { typeId: optionValue }
+    selectedOptionIds: {}, // { typeId: optionPk }
+    selectedVariantId: null,
+    isInStock: false,
+    qty: 1,
+    activeImage: "{{ product.primary_image.image.url|default:'' }}",
+
+    selectOption(typeId, value, optionId) {
+      this.selectedOptions[typeId] = value;
+      this.selectedOptionIds[typeId] = parseInt(optionId);
+      this.findMatchingVariant();
+    },
+
+    findMatchingVariant() {
+      const selectedPks = Object.values(this.selectedOptionIds);
+      const totalTypes = {{ variant_types.count }};
+
+      if (selectedPks.length < totalTypes) {
+        this.selectedVariantId = null;
+        this.isInStock = false;
+        return;
+      }
+
+      const match = variants.find(v => {
+        return selectedPks.every(pk => v.options.includes(pk)) &&
+               v.options.length === selectedPks.length;
+      });
+
+      if (match) {
+        this.selectedVariantId = match.id;
+        this.isInStock = match.stock > 0;
+        // Update stock info via HTMX
+        htmx.ajax('GET', `/catalog/variant/${match.id}/stock/`, {
+          target: '#variant-stock-info',
+          swap: 'innerHTML'
+        });
+      } else {
+        this.selectedVariantId = null;
+        this.isInStock = false;
+      }
+    },
+
+    submitAddToCart(event) {
+      if (!this.selectedVariantId) return;
+      const form = event.target;
+      const url = `/orders/cart/add/${this.selectedVariantId}/`;
+
+      htmx.ajax('POST', url, {
+        target: '#cart-count',
+        swap: 'innerHTML',
+        values: {
+          quantity: this.qty,
+          csrfmiddlewaretoken: form.querySelector('[name=csrfmiddlewaretoken]').value,
+        }
+      });
+    }
+  }
+}
+</script>
+{% endblock %}

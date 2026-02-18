@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block title %}My Orders — MyStore{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+  <h1 class="text-2xl font-bold text-gray-900 mb-6">My Orders</h1>
+
+  {% if orders %}
+  <div class="space-y-4">
+    {% for order in orders %}
+    <div class="bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-sm transition">
+      <div class="flex items-center justify-between p-4 border-b border-gray-100">
+        <div class="flex items-center gap-4">
+          <div>
+            <p class="font-bold text-gray-800">Order #{{ order.pk }}</p>
+            <p class="text-xs text-gray-400">{{ order.created_at|date:"M d, Y" }}</p>
+          </div>
+
+          {# Status badge #}
+          {% if order.status == 'pending' %}
+            <span class="bg-amber-100 text-amber-700 text-xs font-bold px-2.5 py-1 rounded-full">⏳ Pending</span>
+          {% elif order.status == 'processing' %}
+            <span class="bg-blue-100 text-blue-700 text-xs font-bold px-2.5 py-1 rounded-full">📞 Processing</span>
+          {% elif order.status == 'payment_received' %}
+            <span class="bg-purple-100 text-purple-700 text-xs font-bold px-2.5 py-1 rounded-full">💳 Payment Received</span>
+          {% elif order.status == 'packing' %}
+            <span class="bg-pink-100 text-pink-700 text-xs font-bold px-2.5 py-1 rounded-full">📦 Packing</span>
+          {% elif order.status == 'shipped' %}
+            <span class="bg-cyan-100 text-cyan-700 text-xs font-bold px-2.5 py-1 rounded-full">🚚 Shipped</span>
+          {% elif order.status == 'delivered' %}
+            <span class="bg-green-100 text-green-700 text-xs font-bold px-2.5 py-1 rounded-full">✅ Delivered</span>
+          {% elif order.status == 'declined' %}
+            <span class="bg-red-100 text-red-700 text-xs font-bold px-2.5 py-1 rounded-full">❌ Declined</span>
+          {% endif %}
+        </div>
+
+        <div class="flex items-center gap-4">
+          <p class="font-bold text-gray-900">{{ order.total_price|floatformat:2 }} LYD</p>
+          <a href="{{ order.get_absolute_url }}"
+             class="text-sm text-primary hover:underline font-medium">View →</a>
+        </div>
+      </div>
+
+      {# Items preview #}
+      <div class="p-4 flex gap-3 overflow-x-auto">
+        {% for item in order.items.all|slice:":4" %}
+        <div class="shrink-0 text-center">
+          {% with img=item.variant.product.primary_image %}
+          <div class="w-14 h-14 rounded-lg overflow-hidden bg-gray-100 mb-1">
+            {% if img %}
+              <img src="{{ img.image.url }}" alt="" class="w-full h-full object-cover" />
+            {% else %}
+              <div class="w-full h-full flex items-center justify-center text-gray-300 text-xl">📦</div>
+            {% endif %}
+          </div>
+          {% endwith %}
+          <p class="text-xs text-gray-500 w-14 truncate">{{ item.variant.product.name }}</p>
+        </div>
+        {% endfor %}
+        {% if order.items.count > 4 %}
+        <div class="shrink-0 w-14 h-14 rounded-lg bg-gray-100 flex items-center justify-center text-xs text-gray-500 font-medium">
+          +{{ order.items.count|add:"-4" }} more
+        </div>
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  {% else %}
+  <div class="text-center py-24">
+    <p class="text-5xl mb-4">📋</p>
+    <h2 class="text-xl font-bold text-gray-700 mb-2">No orders yet</h2>
+    <p class="text-gray-500 text-sm mb-6">Start shopping and your orders will appear here.</p>
+    <a href="{% url 'catalog:homepage' %}"
+       class="bg-primary text-white font-semibold px-6 py-3 rounded-xl hover:bg-blue-700 transition-colors">
+      Browse Products
+    </a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
